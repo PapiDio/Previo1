@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notas del Estudiante</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+    }
+
+    #header {
+      background-color: #D31024;
+      color: #fff;
+      padding: 20px;
+      text-align: center;
+      font-size: 20px;
+    }
+
+    #container {
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th, td {
+      padding: 10px;
+      text-align: center;
+      border-bottom: 1px solid #ddd;
+    }
+
+    th {
+      background-color: #f2f2f2;
+    }
+
+    #logout-btn {
+      background-color: #D31024;
+      color: #fff;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      float: right;
+    }
+  </style>
+</head>
+<body>
+  <div id="header">
+    Notas del Estudiante
+    <button id="logout-btn">Cerrar Sesión</button>
+  </div>
+  <div id="container">
+    <table id="notas-table">
+      <thead>
+        <tr>
+          <th>Asignatura</th>
+          <th>Número de Créditos</th>
+          <th>P1</th>
+          <th>P2</th>
+          <th>P3</th>
+          <th>EF</th>
+          <th>Definitiva</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Aquí se insertarán las filas de la tabla -->
+      </tbody>
+    </table>
+    <div id="promedio-panel">
+      Promedio Ponderado: <span id="promedio-ponderado"></span>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const user = JSON.parse(localStorage.getItem('user'));
+      if (!user) {
+        window.location.href = 'index.html';
+      }
+
+      const codigo = user.codigo;
+
+      // Obtener notas del estudiante
+      fetch(`https://api-parcial.crangarita.repl.co/students/${codigo}/notas`)
+      .then(response => response.json())
+      .then(data => {
+        const notasTable = document.getElementById('notas-table');
+        const tbody = notasTable.querySelector('tbody');
+        const promedioPanel = document.getElementById('promedio-ponderado');
+
+        let totalCreditos = 0;
+        let totalDefinitivasPorCredito = 0;
+
+        data.forEach(asignatura => {
+          const definitiva = calcularDefinitiva(asignatura.P1, asignatura.P2, asignatura.P3, asignatura.EF);
+          const fila = `
+            <tr>
+              <td>${asignatura.nombre}</td>
+              <td>${asignatura.creditos}</td>
+              <td>${asignatura.P1}</td>
+              <td>${asignatura.P2}</td>
+              <td>${asignatura.P3}</td>
+              <td>${asignatura.EF}</td>
+              <td>${definitiva}</td>
+            </tr>
+          `;
+          tbody.insertAdjacentHTML('beforeend', fila);
+
+          totalCreditos += asignatura.creditos;
+          totalDefinitivasPorCredito += (definitiva * asignatura.creditos);
+        });
+
+        const promedioPonderado = totalDefinitivasPorCredito / totalCreditos;
+        promedioPanel.textContent = promedioPonderado.toFixed(2);
+      });
+
+      // Función para calcular la definitiva
+      function calcularDefinitiva(p1, p2, p3, ef) {
+        return ((p1 + p2 + p3) / 3) * 0.7 + ef * 0.3;
+      }
+
+      // Evento para cerrar sesión
+      document.getElementById('logout-btn').addEventListener('click', function() {
+        localStorage.removeItem('user');
+        window.location.href = 'index.html';
+      });
+    });
+  </script>
+</body>
+</html>
